@@ -154,15 +154,17 @@ def fill_library():
     for index in drug_df.index:
         well_name = str(drug_df['Dispensed\nwell'][index])
         drug_name = drug_df["Fluid name"][index]
+        id = 1
         if well_name in class_dict.keys():
             class_dict[well_name].update_drugs(drug_name, drug_df["Dispensed concentration"][index],
                                            drug_df["Conc. units"][index])
         else:
             class_dict[well_name] = DrugWell(drug_df['Dispensed\nwell'][index], drug_df["Plate"][index],
                                          drug_df["Dispensed\nrow"][index],
-                                         drug_df["Dispensed\ncol"][index], index)
+                                         drug_df["Dispensed\ncol"][index], id)
             class_dict[well_name].update_drugs(drug_name, drug_df["Dispensed concentration"][index],
                                            drug_df["Conc. units"][index])
+            id += 1
 
 
 # this for loop makes a master table with all conditions and well data combined
@@ -206,6 +208,7 @@ def fill_library():
             cond_id.append(10)
         else:
             print("Couldn't define condition!")
+
     exp_dict = {'well_id': well_id,
                 'well_name': well_name_lst,
                 'row': row,
@@ -220,6 +223,7 @@ def fill_library():
                 'mean_roundness': mean_roundness
                 }
     exp_df = pd.DataFrame.from_dict(exp_dict)
+    exp_df.set_index('well_id', drop=True, inplace=True)
     exp_df.to_csv('output/experiment_table.csv', sep=';')
 
 def find_positive(plate, cut_off, verbose=True):
@@ -269,9 +273,7 @@ def find_condition(plate, Lapa=False, Bini=False, Vino=False, Navi=False, DMSO=F
     # print(f"{plate[well].name}: {plate[well].prop_alive(cut_off,False)}")
 
 
-# find_positive(class_dict, 0.75,False)
-# find_negative(class_dict, 0.75,False)
-# find_condition(class_dict, DMSO=True)
-# find_condition(class_dict, Navi=True, Bini=True)
-# find_condition(class_dict, Navi=True)
-fill_library()
+# To run script!
+# fill_library()
+# Make a merged_table to combine conditions_table.xlsx with experiment_table.csv
+# execfile('MergeTables.py')
