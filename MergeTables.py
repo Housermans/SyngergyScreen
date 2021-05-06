@@ -2,13 +2,15 @@ import pandas as pd
 
 exp_df = pd.read_csv('output/experiment_table.csv', sep=';')
 cond_df = pd.read_excel(r'input/Conditions_table.xlsx')
+cond_df = cond_df[['Cond_id', 'Cond_name']]
 
 def merge_ID():
-    cond_df = cond_df[['Cond_id', 'Cond_name']]
+    if 'Cond_name' in exp_df:
+        print('This column already exists')
+        return None
     merged_inner = pd.merge(left=exp_df, right=cond_df, left_on='cond_id', right_on='Cond_id')
     merged_inner.drop(['Cond_id', 'Unnamed: 0'], axis=1, inplace=True)
     merged_inner.to_csv('output/experiment_table.csv', sep=';')
-
 merge_ID()
 
 '''

@@ -1,12 +1,10 @@
 import pandas as pd
 import glob
-import string
-
-abc = string.ascii_uppercase
-
+from string import ascii_uppercase as abc
 
 # Here a class (or an object) is made to represent a well on the drug screen plate. This will then be used to aggregate
 # data from that well. Most important: what treatment was given and what objects were identified.
+
 
 class DrugWell:
     def __init__(self, name, plate, row, column, id):
@@ -54,7 +52,9 @@ class DrugWell:
                                           "Organoids Selected - Object No in Organoids": "object_no"}, inplace=True)
         self.total_cells = len(self.df)
         self.roundness_mean = self.df.cell_round.mean()
-        self.df.to_csv(f"{self.df_output_path}{self.name}_organoids.csv", sep=';')
+        self.file = f"{self.df_output_path}{self.name}_organoids.csv"
+        self.df.to_csv(self.file, sep=';')
+
 
 
     # this method is used to import drug information from the drug printer export into the drug
@@ -117,8 +117,6 @@ class DrugWell:
               f"\nDMSO: {str(self.isin_DMSO)}")
 
 
-
-
 def fill_library():
     # Below the code actually starts.
     # imports 2 xlsx files: the drug print file and a file with conditions in the test
@@ -148,6 +146,7 @@ def fill_library():
     Vino = []
     n_organoids = []
     mean_roundness = []
+    file_path = []
 
     # here, the library is filled based on the drug printer file with all the drugs per well in a different row
 
@@ -180,6 +179,7 @@ def fill_library():
         Vino.append(class_dict[key].Vino)
         n_organoids.append(class_dict[key].total_cells)
         mean_roundness.append(class_dict[key].roundness_mean)
+        file_path.append(class_dict[key].file)
         if class_dict[key].isin_DMSO:
             cond_id.append(1)
         elif class_dict[key].isin_Navi:
@@ -220,10 +220,11 @@ def fill_library():
                 'Bini': Bini,
                 'Vino': Vino,
                 'n_organoids': n_organoids,
-                'mean_roundness': mean_roundness
+                'mean_roundness': mean_roundness,
+                'file_path': file_path
                 }
+    global exp_df
     exp_df = pd.DataFrame.from_dict(exp_dict)
-    exp_df.set_index('well_id', drop=True, inplace=True)
     exp_df.to_csv('output/experiment_table.csv', sep=';')
 
 def find_positive(plate, cut_off, verbose=True):
@@ -248,32 +249,8 @@ def find_negative(plate, cut_off, verbose=True):
                 print(f"{plate[well].name}: {plate[well].prop_alive(cut_off, False)}")
 
 
-def find_condition(plate, Lapa=False, Bini=False, Vino=False, Navi=False, DMSO=False, verbose=True):
-    variable_list = [Lapa, Bini, Vino, Navi, DMSO]
-    mission = []
-    for var in variable_list:
-        if var:
-            mission.append(var)
-    if not mission:
-        print(f"please name a variable from {variable_list} to use this function")
-        return None
-    elif len(mission) == 1 and DMSO == True:
-        print("================positive controls================")
-    elif len(mission) == 1 and Navi == True:
-        print("================negative controls================")
-    else:
-        print(f"=======looking for {mission}=======")
-    # for well in plate:
-    # for objective in mission:
-    # if plate[well].objective != 0:
-    # if verbose:
-    # plate[well].summary()
-    # plate[well].prop_alive(cut_off)
-    # else:
-    # print(f"{plate[well].name}: {plate[well].prop_alive(cut_off,False)}")
-
-
 # To run script!
-# fill_library()
+fill_library()
+print(exp_df.head())
 # Make a merged_table to combine conditions_table.xlsx with experiment_table.csv
 # execfile('MergeTables.py')
