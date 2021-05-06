@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 exp_df = pd.read_csv('output/experiment_table.csv', sep=';')
 
@@ -16,6 +17,7 @@ def select_condition(select_id, maxsize=50000, plot=False, title='NA', drop=[]):
     # reset index omdat je verschillende dataframes aan elkaar hebt geplakt, anders krijg je rare uitkomsten met drop
     organoid_df.reset_index(inplace=True)
     organoid_df = organoid_df.drop(organoid_df[organoid_df.cell_area > maxsize].index)
+    organoid_df['cond_name'] = cond_name
     if drop:
         for item in drop:
             # print('dropping', item)
@@ -61,6 +63,16 @@ def summarize_per_well(df, title="Organoids", drop=[]):
     plt.suptitle(title)
     plt.show()
 
+def violin_plot(df1, df2, cutoff=None):
+    together = pd.concat([df1, df2])
+    plt.subplot(1,2,1)
+    sns.set_theme(style="whitegrid")
+    sns.violinplot(y=together['cell_round'], x=together['cond_name'])
+    if cutoff:
+        plt.axhline(y=cutoff)
+    plt.title(f'{df1["cond_name"].unique()[0]} vs {df2["cond_name"].unique()[0]}')
+    plt.show()
+
 def summarize_condition(df, title='Organoids'):
     fig=plt.figure(figsize=(10,8))
     plt.subplot(121)
@@ -83,32 +95,58 @@ def classify_alive(df, cut_off):
             alive += 1
     return alive/len(df)
 
-def plt_cutoff(df, lower, upper, plot=False):
-    lower = int(lower*100)
-    upper = int(upper*100)
+def plt_cutoff(df, lower=0.5, upper=0.9, plot=False, title=''):
+    lower_int = int(lower * 100)
+    upper_int = int(upper * 100)
+    range_int = range(lower_int, upper_int + 1, 1)
     pct_alive = []
-    for value in range(lower, upper+1, 1):
+    for value in range_int:
         pct_alive.append(classify_alive(df, value))
     if plot:
-        plt.bar(range(lower, upper+1, 1), pct_alive)
+        ax = plt.subplot()
+        plt.bar(range_int, pct_alive)
+        x_ticks = list(range(lower_int, upper_int + 1, 5))
+        x_ticklabels = [x / 100 for x in x_ticks]
+        ax.set_xticks(x_ticks)
+        ax.set_xticklabels(x_ticklabels)
+        if title:
+            plt.title(f"Percentage alive for cut-off in {title}")
+        plt.ylabel('Percentage Alive')
+        plt.xlabel('Cut-off Value')
         plt.show()
     return pct_alive
 
-def plt_diff(neg_df, pos_df, lower, upper):
-    neg = plt_cutoff(neg_df, lower, upper)
-    pos = plt_cutoff(pos_df, lower, upper)
-    lower = int(lower * 100)
-    upper = int(upper * 100)
+def plt_diff(neg_df, pos_df, lower=0.5, upper=0.9, plot=False):
+    upper_int = int(upper * 100)
+    lower_int = int(lower * 100)
+    range_int = range(lower_int, upper_int + 1, 1)
+    if plot:
+        neg = plt_cutoff(neg_df, lower=lower, upper=upper, plot=True, title='Negative Control')
+        pos = plt_cutoff(pos_df, lower=lower, upper=upper, plot=True, title='Positive Control')
+    else:
+        neg = plt_cutoff(neg_df, lower=lower, upper=upper)
+        pos = plt_cutoff(pos_df, lower=lower, upper=upper)
     diff = []
     for i in range(len(neg)):
         diff.append(neg[i] - pos[i])
-    plt.bar(range(lower, upper+1, 1), diff)
-    plt.show()
+    if plot:
+        ax = plt.subplot()
+        plt.bar(range_int, diff)
+        x_ticks = list(range(lower_int, upper_int + 1, 5))
+        x_ticklabels = [x/100 for x in x_ticks]
+        ax.set_xticks(x_ticks)
+        ax.set_xticklabels(x_ticklabels)
+        plt.title('Difference between positive and negative control at cut-off')
+        plt.ylabel('Percentage Alive')
+        plt.xlabel('Cut-off Value')
+        plt.show()
     return diff
 
 negctrl_organoid_df = select_condition(1)
 posctrl_organoid_df = select_condition(2, drop=['K22'])
-plt_diff(negctrl_organoid_df, posctrl_organoid_df, 0.5, 0.9)
+diff = plt_diff(negctrl_organoid_df, posctrl_organoid_df)
+cutoff = max(diff)
+# violin_plot(negctrl_organoid_df, posctrl_organoid_df, cutoff=cutoff)
 # summarize_condition(negctrl_organoid_df1, title="Negative Control (DMSO)")
 # summarize_condition(posctrl_organoid_df2, title="Positive control (Navitoclax 10microM)")
 # summarize_per_well(negctrl_organoid_df, title='negative control (DMSO)')
