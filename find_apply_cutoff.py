@@ -4,6 +4,9 @@ import seaborn as sns
 import numpy as np
 
 exp_df = pd.read_csv('output/experiment_table.csv', sep=';')
+cond_table = pd.read_excel("input/Conditions_table.xlsx")
+cond_table.sort_values(by=['Cond_id'], axis=0, inplace=True)
+cond_table.reset_index(inplace=True, drop=True)
 
 def select_condition(select_id, maxsize=50000, plot=False, title='NA', drop=[], cutoff=None):
     select_df = exp_df.loc[exp_df['cond_id'] == select_id]
@@ -33,11 +36,9 @@ def select_condition(select_id, maxsize=50000, plot=False, title='NA', drop=[], 
             title = cond_name
         summarize_condition(organoid_df, title=title)
         summarize_per_well(organoid_df, title=title, drop=drop)
-    print('before cutoff',len(organoid_df))
     if cutoff:
         organoid_df['alive_bool'] = np.where(organoid_df['cell_round'] > cutoff, True, False)
         organoid_df['status'] = np.where(organoid_df['alive_bool'], 'alive', 'dead')
-    print('after cutoff', len(organoid_df))
     organoid_df.to_csv(f'output/conditions/{cond_name}_organoids.csv', sep=';')
     return organoid_df
 
@@ -161,7 +162,16 @@ def find_cutoff(plot=False):
 def save_condition_tables(plot=False):
     cutoff = find_cutoff(plot=plot)
     conditions = exp_df['cond_id'].unique()
+    cond_table['mean_round'] = 0
+    cond_table['alive'] = 0
+    cond_table['total'] = 0
+    cond_table['ratio'] = 0
     for condition in conditions:
-        select_condition(condition, plot=plot, cutoff=cutoff)
+        df = select_condition(condition, plot=plot, cutoff=cutoff)
+        cond_table.at[condition-1,'mean_round'] = df['cell_round'].mean()
+        cond_table.at[condition-1,'alive'] = df['alive_bool'].sum()
+        cond_table.at[condition-1,'total'] = len(df)
+        cond_table.at[condition-1,'ratio'] = df['alive_bool'].sum()/len(df)
+    cond_table.to_csv('output/condition_data.csv', sep=';')
 
 save_condition_tables()
