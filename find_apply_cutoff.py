@@ -1,10 +1,11 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 
 exp_df = pd.read_csv('output/experiment_table.csv', sep=';')
 
-def select_condition(select_id, maxsize=50000, plot=False, title='NA', drop=[]):
+def select_condition(select_id, maxsize=50000, plot=False, title='NA', drop=[], cutoff=None):
     select_df = exp_df.loc[exp_df['cond_id'] == select_id]
     cond_name = select_df['Cond_name'].unique()[0]
     organoid_df = pd.DataFrame(columns=['Unnamed: 0', 'ScreenName', 'ScreenID', 'PlateName', 'PlateID',
@@ -32,6 +33,12 @@ def select_condition(select_id, maxsize=50000, plot=False, title='NA', drop=[]):
             title = cond_name
         summarize_condition(organoid_df, title=title)
         summarize_per_well(organoid_df, title=title, drop=drop)
+    print('before cutoff',len(organoid_df))
+    if cutoff:
+        organoid_df['alive_bool'] = np.where(organoid_df['cell_round'] > cutoff, True, False)
+        organoid_df['status'] = np.where(organoid_df['alive_bool'], 'alive', 'dead')
+    print('after cutoff', len(organoid_df))
+    organoid_df.to_csv(f'output/conditions/{cond_name}_organoids.csv', sep=';')
     return organoid_df
 
 def summarize_per_well(df, title="Organoids", drop=[]):
@@ -142,27 +149,19 @@ def plt_diff(neg_df, pos_df, lower=0.5, upper=0.9, plot=False):
         plt.show()
     return diff
 
-negctrl_organoid_df = select_condition(1)
-posctrl_organoid_df = select_condition(2, drop=['K22'])
-diff = plt_diff(negctrl_organoid_df, posctrl_organoid_df)
-cutoff = max(diff)
-# violin_plot(negctrl_organoid_df, posctrl_organoid_df, cutoff=cutoff)
-# summarize_condition(negctrl_organoid_df1, title="Negative Control (DMSO)")
-# summarize_condition(posctrl_organoid_df2, title="Positive control (Navitoclax 10microM)")
-# summarize_per_well(negctrl_organoid_df, title='negative control (DMSO)')
-# summarize_per_well(posctrl_organoid_df, title='positive control (navitoclax)')
+def find_cutoff(plot=False):
+    negctrl_organoid_df = select_condition(1, plot=plot)
+    posctrl_organoid_df = select_condition(2, plot=plot, drop=['K22'])
+    diff = plt_diff(negctrl_organoid_df, posctrl_organoid_df, plot=plot)
+    cutoff = max(diff)
+    if plot:
+        violin_plot(negctrl_organoid_df, posctrl_organoid_df, cutoff)
+    return cutoff
 
-# print(classify_alive(negctrl_organoid_df, 70))
-# neg = plt_cutoff(negctrl_organoid_df, 0.5, 0.9)
-# pos = plt_cutoff(posctrl_organoid_df, 0.5, 0.9)
+def save_condition_tables(plot=False):
+    cutoff = find_cutoff(plot=plot)
+    conditions = exp_df['cond_id'].unique()
+    for condition in conditions:
+        select_condition(condition, plot=plot, cutoff=cutoff)
 
-
-'''
-print(f"Negative control: {len(negctrl_summary_df)}")
-print(negctrl_summary_df['mean_roundness'])
-print(negctrl_summary_df['n_organoids'].sum())
-
-print(f"Positive control: {len(posctrl_summary_df)}")
-print(posctrl_summary_df['mean_roundness'])
-print(posctrl_summary_df['n_organoids'].sum())
-'''
+save_condition_tables()
