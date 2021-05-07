@@ -159,7 +159,7 @@ def find_cutoff(plot=False):
         violin_plot(negctrl_organoid_df, posctrl_organoid_df, cutoff)
     return cutoff
 
-def save_condition_tables(plot=False):
+def save_condition_tables(plot=False, save=True):
     cutoff = find_cutoff(plot=plot)
     conditions = exp_df['cond_id'].unique()
     cond_table['mean_round'] = 0
@@ -171,7 +171,37 @@ def save_condition_tables(plot=False):
         cond_table.at[condition-1,'mean_round'] = df['cell_round'].mean()
         cond_table.at[condition-1,'alive'] = df['alive_bool'].sum()
         cond_table.at[condition-1,'total'] = len(df)
-        cond_table.at[condition-1,'ratio'] = df['alive_bool'].sum()/len(df)
-    cond_table.to_csv('output/condition_data.csv', sep=';')
+    if save:
+        cond_table.to_csv('output/condition_data.csv', sep=';')
+    return cutoff
 
-save_condition_tables()
+def get_pct_alive_per_well(plot=False, save=True, norm=False):
+    cutoff = find_cutoff(plot=plot)
+    wells = exp_df['well_name'].tolist()
+    total = exp_df['n_organoids'].tolist()
+    path = exp_df['file_path'].tolist()
+    path_new = path_new = [pathx[:15]+'_cutoff'+pathx[15:-4]+'_cut.csv' for pathx in path]
+    if norm:
+        print('WARNING, to normalize you need to run condition summary first!!!')
+        cond_df = pd.read_csv('output/condition_data.csv', sep=';')
+        norm = max(cond_df['ratio'])
+    alive = []
+    ratio = []
+    for i in range(len(wells)):
+        df = pd.read_csv(path[i], sep=';')
+        df['alive_bool'] = np.where(df['cell_round'] > cutoff, True, False)
+        df['status'] = np.where(df['alive_bool'], 'alive', 'dead')
+        alive.append(df['alive_bool'].sum())
+        if save:
+            df.to_csv(path_new[i], sep=';')
+    for i in range(len(wells)):
+        ratio.append(alive[i]/total[i])
+    exp_df['alive'] = alive
+    exp_df['total'] = total
+    exp_df['ratio'] = ratio
+    if norm:
+        exp_df['norm_ratio'] = exp_df['ratio']/norm
+    if save:
+        exp_df.to_csv('output/experiment_table_cut.csv', sep=';')
+
+get_pct_alive_per_well(norm=True)
