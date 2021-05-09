@@ -1,10 +1,15 @@
 import pandas as pd
 import glob
 from string import ascii_uppercase as abc
+import os
 
 # Here a class (or an object) is made to represent a well on the drug screen plate. This will then be used to aggregate
 # data from that well. Most important: what treatment was given and what objects were identified.
-
+# Step one: run 'folder_set_up()'
+# Step two: fill 'input/well_csv' folder with .csv files from columbus
+# Step three: add an file Conditions_table.xlsx (an overview of all conditions, see example)
+# Step four: add Drugconcentrations_perwell.xlsx (that's the tab from the drugreport excelfile)
+# Step five:
 
 class DrugWell:
     def __init__(self, name, plate, row, column, id):
@@ -116,6 +121,13 @@ class DrugWell:
               f"\nNavi: {str(self.Navi)}{self.Navi_unit}"
               f"\nDMSO: {str(self.isin_DMSO)}")
 
+def folder_set_up():
+    os.mkdir('input')
+    os.mkdir('input/well_csv')
+    os.mkdir('output')
+    os.mkdir('output/well_csv')
+    os.mkdir('output/well_csv_cutoff')
+    os.mkdir('output/conditions')
 
 def fill_library():
     # Below the code actually starts.
@@ -166,7 +178,8 @@ def fill_library():
             id += 1
 
 
-# this for loop makes a master table with all conditions and well data combined
+# this for loop makes a master table with all conditions and well data combined, that is henceforth
+# used to summarize results
     for key in class_dict:
         well_id.append(class_dict[key].id)
         well_name_lst.append(class_dict[key].name)
@@ -228,6 +241,7 @@ def fill_library():
     exp_df.to_csv('output/experiment_table.csv', sep=';')
 
 def find_positive(plate, cut_off, verbose=True):
+    # old code used to print 'positive control' conditions
     print("================positive controls================")
     for well in plate:
         if plate[well].DMSO:
@@ -239,6 +253,7 @@ def find_positive(plate, cut_off, verbose=True):
 
 
 def find_negative(plate, cut_off, verbose=True):
+    # same as find_positive, not in use anymore.
     print("================negative controls================")
     for well in plate:
         if not plate[well].Navi == 0:
@@ -249,8 +264,5 @@ def find_negative(plate, cut_off, verbose=True):
                 print(f"{plate[well].name}: {plate[well].prop_alive(cut_off, False)}")
 
 
-# To run script!
+
 fill_library()
-print(exp_df.head())
-# Make a merged_table to combine conditions_table.xlsx with experiment_table.csv
-# execfile('MergeTables.py')

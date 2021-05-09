@@ -204,4 +204,4 @@ def get_pct_alive_per_well(plot=False, save=True, norm=False):
     if save:
         exp_df.to_csv('output/experiment_table_cut.csv', sep=';')
 
-get_pct_alive_per_well(norm=True)
+# get_pct_alive_per_well(norm=True)
