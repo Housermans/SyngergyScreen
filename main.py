@@ -24,16 +24,20 @@ class DrugWell:
         self.Lapa = 0
         self.Lapa_unit = "µM"
         self.isin_Lapa = False
+        self.Lapa_round = 0
         self.Bini = 0
         self.Bini_unit = "µM"
         self.isin_Bini = False
+        self.Bini_round = 0
         self.Vino = 0
         self.Vino_unit = "µM"
         self.isin_Vino = False
+        self.Vino_round = 0
         self.isin_DMSO = False
         self.Navi = 0
         self.Navi_unit = "µM"
         self.isin_Navi = False
+        self.Navi_round = 0
         # identifies plate number in the original file and links it to a known folder that contains the data (csv txt
         # files obtained from Columbus) on these plates.
         self.df_input_path = "input/well_csv/"
@@ -50,16 +54,33 @@ class DrugWell:
         # searches for a file that contains the variables set above. Glob identifies the * as a wildcard variable so
         # it knows to search for patterns instead of literal *.
         self.file_path_get_csv = glob.glob(self.df_input_path + self.file_name_csv)
-        self.df = pd.read_csv(self.file_path_get_csv[0], sep=';')
-        self.df.rename(columns={"Organoids Selected - Intensity Cell Channel2 Mean": "mean_intensity",
-                                          "Organoids Selected - Cell Roundness": "cell_round",
-                                          "Organoids Selected - Cell Area [µm²]": "cell_area",
-                                          "Organoids Selected - Object No in Organoids": "object_no"}, inplace=True)
-        self.total_cells = len(self.df)
-        self.roundness_mean = self.df.cell_round.mean()
-        self.file = f"{self.df_output_path}{self.name}_organoids.csv"
-        self.df.to_csv(self.file, sep=';')
-
+        if os.path.getsize(self.file_path_get_csv[0]) == 0:
+            print(f"ERROR {self.name} is empty (empty file)")
+            self.total_cells = 0
+            self.roundness_mean = None
+            self.file = f"{self.df_output_path}{self.name}_organoids_EMPTY.csv"
+            self.isEmpty = True
+        else:
+            self.df = pd.read_csv(self.file_path_get_csv[0], sep=',')
+            if self.df.empty:
+                print(f"{self.name} is empty (no elements selected)")
+                self.total_cells = 0
+                self.roundness_mean = None
+                self.isEmpty = True
+            else:
+                self.df.rename(columns={"Organoids Selected Selected - Intensity Cell Channel2 Mean": "mean_intensity",
+                                        "Organoids Selected Selected - Cell Roundness": "cell_round",
+                                        "Organoids Selected Selected - Cell Area [µm²]": "cell_area",
+                                        "Organoids Selected Selected - Object No in Organoids Selected": "object_no",
+                                        "Organoids Selected Selected - Cell Ratio Width to Length": "wtl_ratio",
+                                        "Organoids Selected Selected - Cell Length[µm]": "length",
+                                        "Organoids Selected Selected - Cell Width[µm]": "width"
+                                        }, inplace=True)
+                self.total_cells = len(self.df)
+                self.roundness_mean = self.df.cell_round.mean()
+                self.file = f"{self.df_output_path}{self.name}_organoids.csv"
+                self.df.to_csv(self.file, sep=';')
+                self.isEmpty = False
 
 
     # this method is used to import drug information from the drug printer export into the drug
@@ -68,21 +89,25 @@ class DrugWell:
     def update_drugs(self, name, concentration, unit):
         if name == "Lapatinib":
             self.Lapa = concentration
+            self.Lapa_round = round(concentration, 3)
             self.Lapa_unit = unit
             self.isin_Lapa = True
             self.isin_DMSO = False
         elif name == "Binimetinib":
             self.Bini = concentration
+            self.Bini_round = round(concentration, 3)
             self.Bini_unit = unit
             self.isin_Bini = True
             self.isin_DMSO = False
         elif name == "Vinorelbine":
             self.Vino = concentration
+            self.Vino_round = round(concentration, 3)
             self.Vino_unit = unit
             self.isin_Vino = True
             self.isin_DMSO = False
         elif name == "Navitoclax":
             self.Navi = concentration
+            self.Navi_round = round(concentration, 3)
             self.Navi_unit = unit
             self.isin_Navi = True
             self.isin_DMSO = False
@@ -122,6 +147,7 @@ class DrugWell:
               f"\nDMSO: {str(self.isin_DMSO)}")
 
 def folder_set_up():
+    os.mkdir('figures')
     os.mkdir('input')
     os.mkdir('input/well_csv')
     os.mkdir('output')
@@ -153,19 +179,24 @@ def fill_library():
     plate = []
     cond_id = []
     Navi = []
+    Navi_round = []
     Lapa = []
+    Lapa_round = []
     Bini = []
+    Bini_round = []
     Vino = []
+    Vino_round = []
     n_organoids = []
     mean_roundness = []
     file_path = []
+    empty = []
 
     # here, the library is filled based on the drug printer file with all the drugs per well in a different row
-
+    id = 1
     for index in drug_df.index:
         well_name = str(drug_df['Dispensed\nwell'][index])
         drug_name = drug_df["Fluid name"][index]
-        id = 1
+
         if well_name in class_dict.keys():
             class_dict[well_name].update_drugs(drug_name, drug_df["Dispensed concentration"][index],
                                            drug_df["Conc. units"][index])
@@ -187,12 +218,17 @@ def fill_library():
         column.append(class_dict[key].column)
         plate.append(class_dict[key].plate)
         Navi.append(class_dict[key].Navi)
+        Navi_round.append(class_dict[key].Navi_round)
         Lapa.append(class_dict[key].Lapa)
+        Lapa_round.append(class_dict[key].Lapa_round)
         Bini.append(class_dict[key].Bini)
+        Bini_round.append(class_dict[key].Bini_round)
         Vino.append(class_dict[key].Vino)
+        Vino_round.append(class_dict[key].Vino_round)
         n_organoids.append(class_dict[key].total_cells)
         mean_roundness.append(class_dict[key].roundness_mean)
         file_path.append(class_dict[key].file)
+        empty.append(class_dict[key].isEmpty)
         if class_dict[key].isin_DMSO:
             cond_id.append(1)
         elif class_dict[key].isin_Navi:
@@ -229,16 +265,28 @@ def fill_library():
                 'plate': plate,
                 'cond_id': cond_id,
                 'Navi': Navi,
+                'Navi_round' : Navi_round,
                 'Lapa': Lapa,
+                'Lapa_round': Lapa_round,
                 'Bini': Bini,
+                'Bini_round': Bini_round,
                 'Vino': Vino,
+                'Vino_round': Vino_round,
                 'n_organoids': n_organoids,
                 'mean_roundness': mean_roundness,
-                'file_path': file_path
+                'file_path': file_path,
+                'is_empty' : empty
                 }
     global exp_df
     exp_df = pd.DataFrame.from_dict(exp_dict)
-    exp_df.to_csv('output/experiment_table.csv', sep=';')
+    cond_df = pd.read_excel(r'input/Conditions_table.xlsx')
+    cond_df = cond_df[['cond_id', 'cond_name']]
+    if 'cond_name' in exp_df:
+        print('This column already exists')
+        return None
+    merged_inner = pd.merge(left=exp_df, right=cond_df, left_on='cond_id', right_on='cond_id')
+    merged_inner.to_csv('output/experiment_table.csv', sep=';')
+
 
 def find_positive(plate, cut_off, verbose=True):
     # old code used to print 'positive control' conditions
@@ -264,5 +312,5 @@ def find_negative(plate, cut_off, verbose=True):
                 print(f"{plate[well].name}: {plate[well].prop_alive(cut_off, False)}")
 
 
-
+# folder_set_up()
 fill_library()

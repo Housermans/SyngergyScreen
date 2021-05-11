@@ -5,29 +5,33 @@ import numpy as np
 
 exp_df = pd.read_csv('output/experiment_table.csv', sep=';')
 cond_table = pd.read_excel("input/Conditions_table.xlsx")
-cond_table.sort_values(by=['Cond_id'], axis=0, inplace=True)
+cond_table.sort_values(by=['cond_id'], axis=0, inplace=True)
 cond_table.reset_index(inplace=True, drop=True)
 
 def select_condition(select_id, maxsize=50000, plot=False, title='NA', drop=[], cutoff=None):
     select_df = exp_df.loc[exp_df['cond_id'] == select_id]
-    cond_name = select_df['Cond_name'].unique()[0]
+    cond_name = select_df['cond_name'].unique()[0]
     organoid_df = pd.DataFrame(columns=['Unnamed: 0', 'ScreenName', 'ScreenID', 'PlateName', 'PlateID',
        'MeasurementDate', 'MeasurementID', 'WellName', 'Row', 'Column',
        'Field', 'Timepoint', 'Object Number', 'X', 'Y', 'Bounding Box',
        'mean_intensity', 'cell_round', 'cell_area', 'object_no'])
     for index, row in select_df.iterrows():
-        temp_df = pd.read_csv(row['file_path'], sep=';')
-        organoid_df = pd.concat([organoid_df, temp_df])
+        if row['is_empty']:
+            print(row['well_name'], 'is empty! Therefore it is not included in this condition df')
+            drop.append(row['well_name'])
+        else:
+            temp_df = pd.read_csv(row['file_path'], sep=';')
+            organoid_df = pd.concat([organoid_df, temp_df])
     # reset index omdat je verschillende dataframes aan elkaar hebt geplakt, anders krijg je rare uitkomsten met drop
     organoid_df.reset_index(inplace=True)
     organoid_df = organoid_df.drop(organoid_df[organoid_df.cell_area > maxsize].index)
     organoid_df['cond_name'] = cond_name
     if drop:
         for item in drop:
-            # print('dropping', item)
+            print('dropping', item)
             if not item in organoid_df['WellName'].unique():
-                # print(f'{item} not found')
-                return None
+                print(f'{item} not found or has already been dropped')
+                continue
             organoid_df = organoid_df.drop(organoid_df[organoid_df.WellName == item].index)
     # if argument plot is set as true in function call, two summary plots are created for this condition
     # print(organoid_df['WellName'].unique())
@@ -48,6 +52,7 @@ def summarize_per_well(df, title="Organoids", drop=[]):
     rows = int(n_wells / 8)
     columns = 8
     count = 1
+    plt.figure(figsize=(10,4*rows))
     plt.subplots(rows, columns, sharey='row', sharex='col')
     for well in wells:
         if well in drop:
@@ -55,6 +60,7 @@ def summarize_per_well(df, title="Organoids", drop=[]):
             plt.plot([])
             plt.title(f"{well} blinded")
             plt.xlim(0, 1)
+            plt.ylim(0,8)
             ax.set_xticks([0.5])
             ax.set_xticklabels([0.5])
             count += 1
@@ -64,22 +70,30 @@ def summarize_per_well(df, title="Organoids", drop=[]):
         plt.title(well)
         plt.hist(well_df['cell_round'], density=True, stacked=True)
         plt.xlim(0,1)
+        plt.ylim(0,8)
         ax.set_xticks([0.5])
         ax.set_xticklabels([0.5])
         count += 1
-    plt.subplots_adjust(wspace=0.25)
+    # plt.subplots_adjust(wspace=0.25)
     plt.suptitle(title)
-    plt.show()
+    plt.tight_layout()
+    plt.savefig(f'figures/summary_per_well_{title}.png')
+    # plt.show()
+    plt.close()
+
 
 def violin_plot(df1, df2, cutoff=None):
     together = pd.concat([df1, df2])
-    plt.subplot(1,2,1)
+    fig = plt.figure(figsize=(8,10))
+    fig.add_subplot(1,1,1)
     sns.set_theme(style="whitegrid")
     sns.violinplot(y=together['cell_round'], x=together['cond_name'])
     if cutoff:
-        plt.axhline(y=cutoff)
+        plt.axhline(y=cutoff, color='red')
     plt.title(f'{df1["cond_name"].unique()[0]} vs {df2["cond_name"].unique()[0]}')
-    plt.show()
+    plt.savefig(f'figures/violinplot_{df1.cond_name.unique()[0]}_vs_{df2.cond_name.unique()[0]}.png')
+    # plt.show()
+    plt.close()
 
 def summarize_condition(df, title='Organoids'):
     fig=plt.figure(figsize=(10,8))
@@ -93,7 +107,9 @@ def summarize_condition(df, title='Organoids'):
     plt.ylabel('Area')
     plt.subplots_adjust(wspace=0.35)
     fig.suptitle(title)
-    plt.show()
+    plt.savefig(f'figures/summarize_condition_{title}')
+    # plt.show()
+    plt.close()
 
 def classify_alive(df, cut_off):
     cut_off = cut_off/100
@@ -111,7 +127,8 @@ def plt_cutoff(df, lower=0.5, upper=0.9, plot=False, title=''):
     for value in range_int:
         pct_alive.append(classify_alive(df, value))
     if plot:
-        ax = plt.subplot()
+        fig = plt.figure(figsize=(10,8))
+        ax = fig.add_subplot()
         plt.bar(range_int, pct_alive)
         x_ticks = list(range(lower_int, upper_int + 1, 5))
         x_ticklabels = [x / 100 for x in x_ticks]
@@ -121,7 +138,9 @@ def plt_cutoff(df, lower=0.5, upper=0.9, plot=False, title=''):
             plt.title(f"Percentage alive for cut-off in {title}")
         plt.ylabel('Percentage Alive')
         plt.xlabel('Cut-off Value')
-        plt.show()
+        plt.savefig(f'figures/cutoff_{title}')
+        # plt.show()
+        plt.close()
     return pct_alive
 
 def plt_diff(neg_df, pos_df, lower=0.5, upper=0.9, plot=False):
@@ -138,6 +157,7 @@ def plt_diff(neg_df, pos_df, lower=0.5, upper=0.9, plot=False):
     for i in range(len(neg)):
         diff.append(neg[i] - pos[i])
     if plot:
+        plt.figure(figsize=(10,8))
         ax = plt.subplot()
         plt.bar(range_int, diff)
         x_ticks = list(range(lower_int, upper_int + 1, 5))
@@ -147,7 +167,9 @@ def plt_diff(neg_df, pos_df, lower=0.5, upper=0.9, plot=False):
         plt.title('Difference between positive and negative control at cut-off')
         plt.ylabel('Percentage Alive')
         plt.xlabel('Cut-off Value')
-        plt.show()
+        plt.savefig('figures/cutoff_diff.png')
+        # plt.show()
+        plt.close()
     return diff
 
 def find_cutoff(plot=False):
@@ -159,7 +181,7 @@ def find_cutoff(plot=False):
         violin_plot(negctrl_organoid_df, posctrl_organoid_df, cutoff)
     return cutoff
 
-def save_condition_tables(plot=False, save=True):
+def save_condition_tables(plot=False):
     cutoff = find_cutoff(plot=plot)
     conditions = exp_df['cond_id'].unique()
     cond_table['mean_round'] = 0
@@ -171,23 +193,58 @@ def save_condition_tables(plot=False, save=True):
         cond_table.at[condition-1,'mean_round'] = df['cell_round'].mean()
         cond_table.at[condition-1,'alive'] = df['alive_bool'].sum()
         cond_table.at[condition-1,'total'] = len(df)
-    if save:
-        cond_table.to_csv('output/condition_data.csv', sep=';')
+    cond_table.to_csv('output/condition_data.csv', sep=';')
     return cutoff
 
-def get_pct_alive_per_well(plot=False, save=True, norm=False):
-    cutoff = find_cutoff(plot=plot)
+def normalize(plot=False):
+    cond_table = pd.read_csv('output/condition_data.csv', sep=';')
+    cond_table['ratio'] = cond_table['alive']/cond_table['total']
+    cond_table.sort_values(by=['ratio'], axis=0, inplace=True)
+
+    norm_min = min(cond_table['ratio'])
+    norm_max = max(cond_table['ratio']) - norm_min
+    cond_table['norm_ratio'] = (cond_table['ratio'] - norm_min) / norm_max
+    fancy_names = ['Positive control (10microM Navi)', 'Binimetinib titration with 120nm Vinorelbine',
+               'Vinorelbine titration with 175nm Lapatinib and Binimetinib', 'Vinorelbine 120nm',
+               'Lapatinib titration with 120nm vinorelbine', 'Synergy table with vinorelbine',
+               'Binimetinib titration alone', 'Navitoclax titration', 'Lapatinib titration',
+               'Synergy table without vinorelbine', 'Negative control (DMSO)']
+    cond_table['fancy_name'] = fancy_names
+    if plot:
+        x_ticks = [x / 100 for x in list(range(0, 101, 20))]
+        x_label = [str(x) + "%" for x in list(range(0, 101, 20))]
+        # ax = plt.subplot()
+        plt.figure(figsize=(10,8))
+        ax = sns.barplot(x=cond_table['norm_ratio'], y=cond_table['cond_name'])
+        plt.title('Mean alive (normalized) in whole condition')
+        plt.ylabel('Condition')
+        plt.xlabel('Percent alive')
+        ax.set_xticks(x_ticks)
+        ax.set_xticklabels(x_label)
+        plt.tight_layout()
+        # plt.show()
+        plt.savefig('figures/conditions_summary.png')
+        plt.close()
+    cond_table.sort_values(by=['cond_id'], axis=0, inplace=True)
+    cond_table.to_csv('output/condition_data.csv', ';')
+    return norm_min, norm_max
+
+def find_apply_cutoff(plot=False, save=True):
+    cutoff = save_condition_tables(plot=plot)
+    norm_min, norm_max = normalize(plot=plot)
     wells = exp_df['well_name'].tolist()
     total = exp_df['n_organoids'].tolist()
     path = exp_df['file_path'].tolist()
-    path_new = path_new = [pathx[:15]+'_cutoff'+pathx[15:-4]+'_cut.csv' for pathx in path]
-    if norm:
-        print('WARNING, to normalize you need to run condition summary first!!!')
-        cond_df = pd.read_csv('output/condition_data.csv', sep=';')
-        norm = max(cond_df['ratio'])
+    empty = exp_df['is_empty'].tolist()
+    path_new = [pathx[:15]+'_cutoff'+pathx[15:-4]+'_cut.csv' for pathx in path]
     alive = []
     ratio = []
+    norm_ratio = []
     for i in range(len(wells)):
+        if empty[i]:
+            print(f"{wells[i]} is empty")
+            alive.append(None)
+            continue
         df = pd.read_csv(path[i], sep=';')
         df['alive_bool'] = np.where(df['cell_round'] > cutoff, True, False)
         df['status'] = np.where(df['alive_bool'], 'alive', 'dead')
@@ -195,13 +252,28 @@ def get_pct_alive_per_well(plot=False, save=True, norm=False):
         if save:
             df.to_csv(path_new[i], sep=';')
     for i in range(len(wells)):
+        print(f'processing ratios {wells[i]}')
+        if empty[i]:
+            ratio.append(None)
+            norm_ratio.append(None)
+            continue
         ratio.append(alive[i]/total[i])
+        # ratio.append(ratio)
+        if (ratio[-1]-norm_min)/norm_max < 0:
+            norm_ratio.append(0)
+            continue
+        elif (ratio[-1] - norm_min) / norm_max > 1:
+            norm_ratio.append(1)
+            continue
+        else:
+            norm_ratio.append((ratio[-1]-norm_min)/norm_max)
     exp_df['alive'] = alive
     exp_df['total'] = total
     exp_df['ratio'] = ratio
-    if norm:
-        exp_df['norm_ratio'] = exp_df['ratio']/norm
+    exp_df['norm_ratio'] = norm_ratio
     if save:
+        exp_df.drop(["Unnamed: 0"], axis=1)
         exp_df.to_csv('output/experiment_table_cut.csv', sep=';')
 
-# get_pct_alive_per_well(norm=True)
+find_apply_cutoff(save=True, plot=True)
+# select_condition(1, plot=True)
