@@ -14,7 +14,7 @@ import os
 # Step five:
 
 class DrugWell:
-    def __init__(self, name, plate, row, column, id):
+    def __init__(self, experiment, name, plate, row, column, id):
         self.name = name  # well_name is A01 or C06 etc.
         self.id = id
         self.plate = plate  # integers, if multiple plates were used in a drug screen
@@ -42,8 +42,8 @@ class DrugWell:
         self.Navi_round = 0
         # identifies plate number in the original file and links it to a known folder that contains the data (csv txt
         # files obtained from Columbus) on these plates.
-        self.df_input_path = "../E21-002_RAS16/input/well_csv/"
-        self.df_output_path = "../E21-002_RAS16/output/well_csv/"
+        self.df_input_path = f"../{experiment}/input/well_csv/"
+        self.df_output_path = f"../{experiment}/output/well_csv/"
         # the code below fixes a problem that in the columbus export, the 0 before a single digit number is left out,
         # whereas the drug screen uses a 0. Since the drug screen file is the 'basis', the 0 should be removed here to
         # search for the columbus files. Both txt and csv files here are defined, explanation of that choice below.
@@ -63,7 +63,7 @@ class DrugWell:
             self.file = f"{self.df_output_path}{self.name}_organoids_EMPTY.csv"
             self.isEmpty = True
         else:
-            self.df = pd.read_csv(self.file_path_get_csv[0], sep=',')
+            self.df = pd.read_csv(self.file_path_get_csv[0], sep=';')
             if self.df.empty:
                 print(f"{self.name} is empty (no elements selected)")
                 self.total_cells = 0
@@ -148,21 +148,13 @@ class DrugWell:
               f"\nNavi: {str(self.Navi)}{self.Navi_unit}"
               f"\nDMSO: {str(self.isin_DMSO)}")
 
-def folder_set_up():
-    os.mkdir('../E21-002_RAS16/figures')
-    os.mkdir('../E21-002_RAS16/input')
-    os.mkdir('../E21-002_RAS16/input/well_csv')
-    os.mkdir('../E21-002_RAS16/output')
-    os.mkdir('../E21-002_RAS16/output/well_csv')
-    os.mkdir('../E21-002_RAS16/output/well_csv_cutoff')
-    os.mkdir('../E21-002_RAS16/output/conditions')
 
-def fill_library():
+def fill_library(experiment):
     # Below the code actually starts.
     # imports 2 xlsx files: the drug print file and a file with conditions in the test
     # this is dependent on the openpyxl package!
-    drug_df = pd.read_excel(r'input/Drugconcentrations_perwell.xlsx')
-    cond_df = pd.read_excel(r'input/Conditions_table.xlsx')
+    drug_df = pd.read_excel(fr'../{experiment}/input/Drugconcentrations_perwell.xlsx')
+    cond_df = pd.read_excel(fr'../{experiment}/input/Conditions_table.xlsx')
     # print(drug_df.columns) # gives the following result:
     # Index(['Plate', 'Dispensed\nwell', 'Dispensed\nrow', 'Dispensed\ncol', 'Fluid',
     #     'Fluid name', 'Cassette', 'Dispense\nhead', 'Start time',
@@ -203,7 +195,7 @@ def fill_library():
             class_dict[well_name].update_drugs(drug_name, drug_df["Dispensed concentration"][index],
                                            drug_df["Conc. units"][index])
         else:
-            class_dict[well_name] = DrugWell(drug_df['Dispensed\nwell'][index], drug_df["Plate"][index],
+            class_dict[well_name] = DrugWell(experiment, drug_df['Dispensed\nwell'][index], drug_df["Plate"][index],
                                          drug_df["Dispensed\nrow"][index],
                                          drug_df["Dispensed\ncol"][index], id)
             class_dict[well_name].update_drugs(drug_name, drug_df["Dispensed concentration"][index],
@@ -281,13 +273,13 @@ def fill_library():
                 }
     global exp_df
     exp_df = pd.DataFrame.from_dict(exp_dict)
-    cond_df = pd.read_excel(r'input/Conditions_table.xlsx')
+    cond_df = pd.read_excel(fr'../{experiment}/input/Conditions_table.xlsx')
     cond_df = cond_df[['cond_id', 'cond_name']]
     if 'cond_name' in exp_df:
         print('This column already exists')
         return None
     merged_inner = pd.merge(left=exp_df, right=cond_df, left_on='cond_id', right_on='cond_id')
-    merged_inner.to_csv('output/experiment_table.csv', sep=';')
+    merged_inner.to_csv(f'../{experiment}/output/experiment_table.csv', sep=';')
 
 
 def find_positive(plate, cut_off, verbose=True):
@@ -315,4 +307,4 @@ def find_negative(plate, cut_off, verbose=True):
 
 
 # folder_set_up()
-fill_library()
+fill_library("E21-004_RAS13")

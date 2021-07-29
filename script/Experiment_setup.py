@@ -32,5 +32,5 @@ def check_if_set(experiment_folder):
     else:
         print("Something went wrong, make sure you used the correct names for the input folder and files.")
 
-# check_if_set('Drugscreen_RAS17')
 folder_set_up(experiment_folder)
+check_if_set(experiment_folder)

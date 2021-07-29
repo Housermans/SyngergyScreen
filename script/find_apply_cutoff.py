@@ -3,11 +3,19 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-exp_df = pd.read_csv('output/experiment_table.csv', sep=';')
-cond_table = pd.read_excel("input/Conditions_table.xlsx")
+experiment = "E21-004_RAS13"
+print(f"WARNING: working on {experiment}, if you are working in a new file, please update the experiment variable!")
+
+exp_df = pd.read_csv(fr'{experiment}/output/experiment_table.csv', sep=';')
+cond_table = pd.read_excel(f"{experiment}/input/Conditions_table.xlsx")
 cond_table.sort_values(by=['cond_id'], axis=0, inplace=True)
 cond_table.reset_index(inplace=True, drop=True)
 
+# bug fix because apparantly, this script is run from home folder instead of from the script folder.
+# TODO: fix the bug permanently by making sure this script runs from the script folder instead.
+def convert_file_path(path_with_dots):
+    path_without_dots = path_with_dots[3:]
+    return path_without_dots
 
 def select_condition(select_id, maxsize=50000, plot=False, title='NA', drop=[], cutoff=None):
     select_df = exp_df.loc[exp_df['cond_id'] == select_id]
@@ -21,7 +29,7 @@ def select_condition(select_id, maxsize=50000, plot=False, title='NA', drop=[], 
             print(row['well_name'], 'is empty! Therefore it is not included in this condition df')
             drop.append(row['well_name'])
         else:
-            temp_df = pd.read_csv(row['file_path'], sep=';')
+            temp_df = pd.read_csv(convert_file_path(row['file_path']), sep=';')
             organoid_df = pd.concat([organoid_df, temp_df])
     # reset index omdat je verschillende dataframes aan elkaar hebt geplakt, anders krijg je rare uitkomsten met drop
     organoid_df.reset_index(inplace=True)
@@ -44,7 +52,7 @@ def select_condition(select_id, maxsize=50000, plot=False, title='NA', drop=[], 
     if cutoff:
         organoid_df['alive_bool'] = np.where(organoid_df['cell_round'] > cutoff, True, False)
         organoid_df['status'] = np.where(organoid_df['alive_bool'], 'alive', 'dead')
-    organoid_df.to_csv(f'output/conditions/{cond_name}_organoids.csv', sep=';')
+    organoid_df.to_csv(f'{experiment}/output/conditions/{cond_name}_organoids.csv', sep=';')
     return organoid_df
 
 
@@ -79,7 +87,7 @@ def summarize_per_well(df, title="Organoids", drop=[]):
     # plt.subplots_adjust(wspace=0.25)
     plt.suptitle(title)
     plt.tight_layout()
-    plt.savefig(f'figures/summary_per_well_{title}.png')
+    plt.savefig(f'{experiment}/figures/summary_per_well_{title}.png')
     # plt.show()
     plt.close()
 
@@ -93,7 +101,7 @@ def violin_plot(df1, df2, cutoff=None):
     if cutoff:
         plt.axhline(y=cutoff, color='red')
     plt.title(f'{df1["cond_name"].unique()[0]} vs {df2["cond_name"].unique()[0]}')
-    plt.savefig(f'figures/violinplot_{df1.cond_name.unique()[0]}_vs_{df2.cond_name.unique()[0]}.png')
+    plt.savefig(f'{experiment}/figures/violinplot_{df1.cond_name.unique()[0]}_vs_{df2.cond_name.unique()[0]}.png')
     # plt.show()
     plt.close()
 
@@ -110,7 +118,7 @@ def summarize_condition(df, title='Organoids'):
     plt.ylabel('Area')
     plt.subplots_adjust(wspace=0.35)
     fig.suptitle(title)
-    plt.savefig(f'figures/summarize_condition_{title}')
+    plt.savefig(f'{experiment}/figures/summarize_condition_{title}')
     # plt.show()
     plt.close()
 
@@ -143,7 +151,7 @@ def plt_cutoff(df, lower=0.5, upper=0.9, plot=False, title=''):
             plt.title(f"Percentage alive for cut-off in {title}")
         plt.ylabel('Percentage Alive')
         plt.xlabel('Cut-off Value')
-        plt.savefig(f'figures/cutoff_{title}')
+        plt.savefig(f'{experiment}/figures/cutoff_{title}')
         # plt.show()
         plt.close()
     return pct_alive
@@ -173,7 +181,7 @@ def plt_diff(neg_df, pos_df, lower=0.5, upper=0.9, plot=False):
         plt.title('Difference between positive and negative control at cut-off')
         plt.ylabel('Percentage Alive')
         plt.xlabel('Cut-off Value')
-        plt.savefig('figures/cutoff_diff.png')
+        plt.savefig(f'{experiment}/figures/cutoff_diff.png')
         # plt.show()
         plt.close()
     return diff
@@ -181,7 +189,7 @@ def plt_diff(neg_df, pos_df, lower=0.5, upper=0.9, plot=False):
 
 def find_cutoff(plot=False):
     negctrl_organoid_df = select_condition(1, plot=plot)
-    posctrl_organoid_df = select_condition(2, plot=plot, drop=['K22'])
+    posctrl_organoid_df = select_condition(2, plot=plot)
     diff = plt_diff(negctrl_organoid_df, posctrl_organoid_df, plot=plot)
     cutoff = max(diff)
     if plot:
@@ -201,12 +209,12 @@ def save_condition_tables(plot=False):
         cond_table.at[condition - 1, 'mean_round'] = df['cell_round'].mean()
         cond_table.at[condition - 1, 'alive'] = df['alive_bool'].sum()
         cond_table.at[condition - 1, 'total'] = len(df)
-    cond_table.to_csv('output/condition_data.csv', sep=';')
+    cond_table.to_csv(f'{experiment}/output/condition_data.csv', sep=';')
     return cutoff
 
 
 def normalize(plot=False):
-    cond_table = pd.read_csv('output/condition_data.csv', sep=';')
+    cond_table = pd.read_csv(f'{experiment}/output/condition_data.csv', sep=';')
     cond_table['ratio'] = cond_table['alive'] / cond_table['total']
     cond_table.sort_values(by=['ratio'], axis=0, inplace=True)
 
@@ -232,10 +240,10 @@ def normalize(plot=False):
         ax.set_xticklabels(x_label)
         plt.tight_layout()
         # plt.show()
-        plt.savefig('figures/conditions_summary.png')
+        plt.savefig(f'{experiment}/figures/conditions_summary.png')
         plt.close()
     cond_table.sort_values(by=['cond_id'], axis=0, inplace=True)
-    cond_table.to_csv('output/condition_data.csv', ';')
+    cond_table.to_csv(f'{experiment}/output/condition_data.csv', ';')
     return norm_min, norm_max
 
 
@@ -246,6 +254,7 @@ def find_apply_cutoff(plot=False, save=True):
     total = exp_df['n_organoids'].tolist()
     path = exp_df['file_path'].tolist()
     empty = exp_df['is_empty'].tolist()
+    # TODO: fix that this doesn't end up like this: 'E21-004_RAS1_cutoff3/output/well_csv/A01_organoids_cut.csv'
     path_new = [pathx[:15] + '_cutoff' + pathx[15:-4] + '_cut.csv' for pathx in path]
     alive = []
     ratio = []
@@ -255,12 +264,12 @@ def find_apply_cutoff(plot=False, save=True):
             print(f"{wells[i]} is empty")
             alive.append(None)
             continue
-        df = pd.read_csv(path[i], sep=';')
+        df = pd.read_csv(convert_file_path(path[i]), sep=';')
         df['alive_bool'] = np.where(df['cell_round'] > cutoff, True, False)
         df['status'] = np.where(df['alive_bool'], 'alive', 'dead')
         alive.append(df['alive_bool'].sum())
         if save:
-            df.to_csv(path_new[i], sep=';')
+            df.to_csv(convert_file_path(path_new[i]), sep=';')
     for i in range(len(wells)):
         print(f'processing ratios {wells[i]}')
         if empty[i]:
@@ -283,7 +292,7 @@ def find_apply_cutoff(plot=False, save=True):
     exp_df['norm_ratio'] = norm_ratio
     if save:
         exp_df.drop(["Unnamed: 0"], axis=1)
-        exp_df.to_csv('output/experiment_table_cut.csv', sep=';')
+        exp_df.to_csv(f'{experiment}/output/experiment_table_cut.csv', sep=';')
 
 
 find_apply_cutoff(save=True, plot=True)
