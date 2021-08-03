@@ -2,8 +2,11 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+experiment = "E21-004_RAS13"
+print(f"WARNING: working on {experiment}, if you are working in a new file, please update the experiment variable!")
+
 def load_condition(cond_id):
-    exp_df = pd.read_csv('output/experiment_table_cut.csv', ';')
+    exp_df = pd.read_csv(f'{experiment}/output/experiment_table_cut.csv', ';')
     cond_df = exp_df[exp_df['cond_id'] == cond_id]
     return cond_df
 
@@ -50,7 +53,7 @@ def synergy_table(body, lapa, bini, plot=False, title='lapabini', save=True):
     if plot:
         heatmap(result, plot=plot, title=title)
     if save:
-        result.to_excel(f'output/synergy_{title}.xlsx')
+        result.to_excel(f'{experiment}/output/synergy_{title}.xlsx')
     return result
 
 def heatmap(df, plot=False, title="lapabini"):
@@ -61,8 +64,11 @@ def heatmap(df, plot=False, title="lapabini"):
     # apply heat map if plot argument is given as True
     if plot:
         plt.figure(figsize=(10,7))
-        sns.heatmap(syn_table, annot=True, cmap='RdYlGn')
-        plt.savefig(f'figures/heatmap_{title}.png')
+        sns.heatmap(syn_table, annot=True, cmap='RdYlGn', vmin=0, vmax=1)
+        plt.xlabel('Binimetinib Dose (mM)')
+        plt.ylabel('Lapatinib Dose(mM)')
+        plt.title(f'Proportion of organoids alive in condition: {title}')
+        plt.savefig(f'{experiment}/figures/heatmap_{title}.png')
         plt.close()
     return syn_table
 
@@ -111,11 +117,11 @@ def drug_response(drug_cond_id, plot=False, drug='NA', save=True):
     # if plot:
     #    heatmap(result, plot=plot, title=title)
     if save:
-        result.to_excel(f'output/response_{drug}.xlsx')
+        result.to_excel(f'{experiment}/output/response_{drug}.xlsx')
     return result
 
-# df_lapabini = synergy_table(8, 4, 6, plot=True, title='lapa_vs_bini', save=True)
-# df_lapabinivino = synergy_table(9,5,7, plot=True, title='lapa_vs_bini_vino120', save=True)
+df_lapabini = synergy_table(8, 4, 6, plot=True, title='lapa_vs_bini', save=True)
+df_lapabinivino = synergy_table(9,5,7, plot=True, title='lapa_vs_bini_vino120', save=True)
 drug_response(3, drug='Navi')
 drug_response(4, drug='Lapa')
 drug_response(6, drug='Bini')

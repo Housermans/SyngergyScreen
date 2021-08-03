@@ -11,11 +11,13 @@ cond_table = pd.read_excel(f"{experiment}/input/Conditions_table.xlsx")
 cond_table.sort_values(by=['cond_id'], axis=0, inplace=True)
 cond_table.reset_index(inplace=True, drop=True)
 
+
 # bug fix because apparantly, this script is run from home folder instead of from the script folder.
 # TODO: fix the bug permanently by making sure this script runs from the script folder instead.
 def convert_file_path(path_with_dots):
     path_without_dots = path_with_dots[3:]
     return path_without_dots
+
 
 def select_condition(select_id, maxsize=50000, plot=False, title='NA', drop=[], cutoff=None):
     select_df = exp_df.loc[exp_df['cond_id'] == select_id]
@@ -254,8 +256,7 @@ def find_apply_cutoff(plot=False, save=True):
     total = exp_df['n_organoids'].tolist()
     path = exp_df['file_path'].tolist()
     empty = exp_df['is_empty'].tolist()
-    # TODO: fix that this doesn't end up like this: 'E21-004_RAS1_cutoff3/output/well_csv/A01_organoids_cut.csv'
-    path_new = [pathx[:15] + '_cutoff' + pathx[15:-4] + '_cut.csv' for pathx in path]
+    path_new = [pathx[:-18] + '_cutoff' + pathx[-18:-4] + '_cut.csv' for pathx in path]
     alive = []
     ratio = []
     norm_ratio = []
@@ -271,7 +272,7 @@ def find_apply_cutoff(plot=False, save=True):
         if save:
             df.to_csv(convert_file_path(path_new[i]), sep=';')
     for i in range(len(wells)):
-        print(f'processing ratios {wells[i]}')
+        # print(f'processing ratios {wells[i]}')
         if empty[i]:
             ratio.append(None)
             norm_ratio.append(None)

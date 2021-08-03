@@ -49,6 +49,8 @@ class DrugWell:
         # search for the columbus files. Both txt and csv files here are defined, explanation of that choice below.
         if self.column == 1:
             self.file_name_csv = f"*result.{self.name.replace('01', '1[')}*.csv"
+        elif self.column == 2:
+            self.file_name_csv = f"*result.{self.name.replace('02', '2[')}*.csv"
         elif self.column < 10:
             self.file_name_csv = f"*result.{self.name.replace('0', '')}*.csv"
         else:
