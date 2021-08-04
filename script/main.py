@@ -309,4 +309,4 @@ def find_negative(plate, cut_off, verbose=True):
 
 
 # folder_set_up()
-fill_library("E21-004_RAS13")
+fill_library("E21-002_RAS16")

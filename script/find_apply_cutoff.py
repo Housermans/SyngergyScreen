@@ -223,12 +223,6 @@ def normalize(plot=False):
     norm_min = min(cond_table['ratio'])
     norm_max = max(cond_table['ratio']) - norm_min
     cond_table['norm_ratio'] = (cond_table['ratio'] - norm_min) / norm_max
-    fancy_names = ['Positive control (10microM Navi)', 'Binimetinib titration with 120nm Vinorelbine',
-                   'Vinorelbine titration with 175nm Lapatinib and Binimetinib', 'Vinorelbine 120nm',
-                   'Lapatinib titration with 120nm vinorelbine', 'Synergy table with vinorelbine',
-                   'Binimetinib titration alone', 'Navitoclax titration', 'Lapatinib titration',
-                   'Synergy table without vinorelbine', 'Negative control (DMSO)']
-    cond_table['fancy_name'] = fancy_names
     if plot:
         x_ticks = [x / 100 for x in list(range(0, 101, 20))]
         x_label = [str(x) + "%" for x in list(range(0, 101, 20))]
