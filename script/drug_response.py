@@ -1,4 +1,4 @@
-from synergy_table import drug_response, load_condition
+from Plot_graphs import drug_response, load_condition
 from matplotlib import pyplot as plt
 import seaborn as sns
 import pandas as pd

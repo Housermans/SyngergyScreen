@@ -6,8 +6,8 @@ import numpy as np
 experiment = "E21-004_RAS13"
 print(f"WARNING: working on {experiment}, if you are working in a new file, please update the experiment variable!")
 
-exp_df = pd.read_csv(fr'{experiment}/output/experiment_table.csv', sep=';')
-cond_table = pd.read_excel(f"{experiment}/input/Conditions_table.xlsx")
+exp_df = pd.read_csv(fr'data/{experiment}/output/experiment_table.csv', sep=';')
+cond_table = pd.read_excel(f"data/{experiment}/input/Conditions_table.xlsx")
 cond_table.sort_values(by=['cond_id'], axis=0, inplace=True)
 cond_table.reset_index(inplace=True, drop=True)
 
@@ -54,7 +54,7 @@ def select_condition(select_id, maxsize=50000, plot=False, title='NA', drop=[], 
     if cutoff:
         organoid_df['alive_bool'] = np.where(organoid_df['cell_round'] > cutoff, True, False)
         organoid_df['status'] = np.where(organoid_df['alive_bool'], 'alive', 'dead')
-    organoid_df.to_csv(f'{experiment}/output/conditions/{cond_name}_organoids.csv', sep=';')
+    organoid_df.to_csv(f'data/{experiment}/output/conditions/{cond_name}_organoids.csv', sep=';')
     return organoid_df
 
 
@@ -89,7 +89,7 @@ def summarize_per_well(df, title="Organoids", drop=[]):
     # plt.subplots_adjust(wspace=0.25)
     plt.suptitle(title)
     plt.tight_layout()
-    plt.savefig(f'{experiment}/figures/summary_per_well_{title}.png')
+    plt.savefig(f'data/{experiment}/figures/summary_per_well_{title}.png')
     # plt.show()
     plt.close()
 
@@ -103,7 +103,7 @@ def violin_plot(df1, df2, cutoff=None):
     if cutoff:
         plt.axhline(y=cutoff, color='red')
     plt.title(f'{df1["cond_name"].unique()[0]} vs {df2["cond_name"].unique()[0]}')
-    plt.savefig(f'{experiment}/figures/violinplot_{df1.cond_name.unique()[0]}_vs_{df2.cond_name.unique()[0]}.png')
+    plt.savefig(f'data/{experiment}/figures/violinplot_{df1.cond_name.unique()[0]}_vs_{df2.cond_name.unique()[0]}.png')
     # plt.show()
     plt.close()
 
@@ -120,7 +120,7 @@ def summarize_condition(df, title='Organoids'):
     plt.ylabel('Area')
     plt.subplots_adjust(wspace=0.35)
     fig.suptitle(title)
-    plt.savefig(f'{experiment}/figures/summarize_condition_{title}')
+    plt.savefig(f'data/{experiment}/figures/summarize_condition_{title}')
     # plt.show()
     plt.close()
 
@@ -153,7 +153,7 @@ def plt_cutoff(df, lower=0.5, upper=0.9, plot=False, title=''):
             plt.title(f"Percentage alive for cut-off in {title}")
         plt.ylabel('Percentage Alive')
         plt.xlabel('Cut-off Value')
-        plt.savefig(f'{experiment}/figures/cutoff_{title}')
+        plt.savefig(f'data/{experiment}/figures/cutoff_{title}')
         # plt.show()
         plt.close()
     return pct_alive
@@ -183,7 +183,7 @@ def plt_diff(neg_df, pos_df, lower=0.5, upper=0.9, plot=False):
         plt.title('Difference between positive and negative control at cut-off')
         plt.ylabel('Percentage Alive')
         plt.xlabel('Cut-off Value')
-        plt.savefig(f'{experiment}/figures/cutoff_diff.png')
+        plt.savefig(f'data/{experiment}/figures/cutoff_diff.png')
         # plt.show()
         plt.close()
     return diff
@@ -211,12 +211,12 @@ def save_condition_tables(plot=False):
         cond_table.at[condition - 1, 'mean_round'] = df['cell_round'].mean()
         cond_table.at[condition - 1, 'alive'] = df['alive_bool'].sum()
         cond_table.at[condition - 1, 'total'] = len(df)
-    cond_table.to_csv(f'{experiment}/output/condition_data.csv', sep=';')
+    cond_table.to_csv(f'data/{experiment}/output/condition_data.csv', sep=';')
     return cutoff
 
 
 def normalize(plot=False):
-    cond_table = pd.read_csv(f'{experiment}/output/condition_data.csv', sep=';')
+    cond_table = pd.read_csv(f'data/{experiment}/output/condition_data.csv', sep=';')
     cond_table['ratio'] = cond_table['alive'] / cond_table['total']
     cond_table.sort_values(by=['ratio'], axis=0, inplace=True)
 
@@ -236,10 +236,10 @@ def normalize(plot=False):
         ax.set_xticklabels(x_label)
         plt.tight_layout()
         # plt.show()
-        plt.savefig(f'{experiment}/figures/conditions_summary.png')
+        plt.savefig(f'data/{experiment}/figures/conditions_summary.png')
         plt.close()
     cond_table.sort_values(by=['cond_id'], axis=0, inplace=True)
-    cond_table.to_csv(f'{experiment}/output/condition_data.csv', ';')
+    cond_table.to_csv(f'data/{experiment}/output/condition_data.csv', ';')
     return norm_min, norm_max
 
 
@@ -287,7 +287,7 @@ def find_apply_cutoff(plot=False, save=True):
     exp_df['norm_ratio'] = norm_ratio
     if save:
         exp_df.drop(["Unnamed: 0"], axis=1)
-        exp_df.to_csv(f'{experiment}/output/experiment_table_cut.csv', sep=';')
+        exp_df.to_csv(f'data/{experiment}/output/experiment_table_cut.csv', sep=';')
 
 
 find_apply_cutoff(save=True, plot=True)
