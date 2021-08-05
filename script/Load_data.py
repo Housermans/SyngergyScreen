@@ -204,6 +204,7 @@ def fill_library(experiment):
                                            drug_df["Conc. units"][index])
             id += 1
 
+    print("Loaded all drug concentrations per well.")
 
 # this for loop makes a master table with all conditions and well data combined, that is henceforth
 # used to summarize results
@@ -282,7 +283,8 @@ def fill_library(experiment):
         return None
     merged_inner = pd.merge(left=exp_df, right=cond_df, left_on='cond_id', right_on='cond_id')
     merged_inner.to_csv(f'../data/{experiment}/output/experiment_table.csv', sep=';')
-
+    print('Synthesized all data into experiment_table.csv')
+    print('Continue to next code block')
 
 def find_positive(plate, cut_off, verbose=True):
     # old code used to print 'positive control' conditions
@@ -308,5 +310,4 @@ def find_negative(plate, cut_off, verbose=True):
                 print(f"{plate[well].name}: {plate[well].prop_alive(cut_off, False)}")
 
 
-# folder_set_up()
-fill_library("E21-002_RAS16")
+# fill_library("E21-002_RAS16")
