@@ -2,11 +2,14 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-experiment = "E21-004_RAS13"
-print(f"WARNING: working on data/{experiment}, if you are working in a new file, please update the experiment variable!")
+def load_experiment(experiment_name):
+    global experiment
+    experiment = experiment_name
+    print(f"WARNING: working on {experiment}, if you are working in a new file, please update the experiment variable!")
+    # return exp_df, cond_table
 
 def load_condition(cond_id):
-    exp_df = pd.read_csv(f'data/{experiment}/output/experiment_table_cut.csv', ';')
+    exp_df = pd.read_csv(f'../data/{experiment}/output/experiment_table_cut.csv', ';')
     cond_df = exp_df[exp_df['cond_id'] == cond_id]
     return cond_df
 
@@ -15,7 +18,7 @@ def synergy_table(body, lapa, bini, plot=False, save=True):
     lapa = load_condition(lapa)
     bini = load_condition(bini)
 
-    cond_df = pd.read_csv(f'data/{experiment}/output/condition_data.csv', ';')
+    cond_df = pd.read_csv(f'../data/{experiment}/output/condition_data.csv', ';')
     fancy_name = cond_df.loc[cond_df['cond_id'] == body, 'fancy_name'].iloc[0]
     cond_name = cond_df.loc[cond_df['cond_id'] == body, 'cond_name'].iloc[0]
     title = fancy_name
@@ -59,7 +62,7 @@ def synergy_table(body, lapa, bini, plot=False, save=True):
     if plot:
         heatmap(result, plot=plot, short_title=cond_name, fancy = fancy_name)
     if save:
-        result.to_excel(f'data/{experiment}/output/synergy_{cond_name}.xlsx')
+        result.to_excel(f'../data/{experiment}/output/synergy_{cond_name}.xlsx')
     return result
 
 def heatmap(df, plot=False, short_title="lapabini", fancy = 'heatmap'):
@@ -74,13 +77,13 @@ def heatmap(df, plot=False, short_title="lapabini", fancy = 'heatmap'):
         plt.xlabel('Binimetinib Dose (mM)')
         plt.ylabel('Lapatinib Dose(mM)')
         plt.title(f'Proportion of organoids alive in condition: {fancy}')
-        plt.savefig(f'data/{experiment}/figures/heatmap_{short_title}.png')
+        plt.savefig(f'../data/{experiment}/figures/heatmap_{short_title}.png')
         plt.close()
     return syn_table
 
 def drug_response(drug_cond_id, plot=True, save=True):
     drug_df = load_condition(drug_cond_id)
-    cond_df = pd.read_csv(f'data/{experiment}/output/condition_data.csv', ';')
+    cond_df = pd.read_csv(f'../data/{experiment}/output/condition_data.csv', ';')
     fancy_name = cond_df.loc[cond_df['cond_id'] == drug_cond_id, 'fancy_name'].iloc[0]
     cond_name = cond_df.loc[cond_df['cond_id'] == drug_cond_id, 'cond_name'].iloc[0]
     drug_name = cond_df.loc[cond_df['cond_id'] == drug_cond_id, 'Drug1'].iloc[0]
@@ -133,21 +136,13 @@ def drug_response(drug_cond_id, plot=True, save=True):
         plt.xlim(0.0045,30)
         plt.xlabel(f'Log of {drug_name} concentration in nano molar (nM)')
         plt.ylabel('normalized proportion of organoids alive for given dose')
-        plt.savefig(f'data/{experiment}/figures/drugresponse_{cond_name}.png')
+        plt.savefig(f'../data/{experiment}/figures/drugresponse_{cond_name}.png')
         # plt.show()
         plt.close()
     if save:
-        result.to_excel(f'data/{experiment}/output/response_{cond_name}.xlsx')
+        result.to_excel(f'../data/{experiment}/output/response_{cond_name}.xlsx')
     return result
 
-df_lapabini = synergy_table(8, 4, 6, plot=True, save=True)
-df_lapabinivino = synergy_table(9,5,7, plot=True, save=True)
-navi = drug_response(3)
-lapa = drug_response(4)
-lapavino = drug_response(5)
-bini = drug_response(6)
-binivino = drug_response(7)
-vino = drug_response(11)
 
 # bini.plot(x='Bini_round', y='mean', logx=True)
 # plt.show()
